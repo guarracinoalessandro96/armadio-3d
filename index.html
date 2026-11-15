@@ -1,0 +1,891 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Armadio 3D</title>
+<meta name="description" content="Il tuo armadio digitale in 3D: fotografi i capi e l'app crea l'outfit perfetto abbinando i colori (armocromia + meteo).">
+<meta name="theme-color" content="#070a12">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Armadio 3D">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: dark;
+  --bg:#070a12; --bg-2:#0c1120;
+  --surface:rgba(22,30,52,.62); --surface-2:rgba(30,40,68,.55);
+  --line:rgba(120,150,210,.18);
+  --fg:#eaf1ff; --muted:#8da0c6;
+  --cyan:#2ee9d6; --violet:#8b6cff; --pink:#ff5fae; --gold:#ffd15f; --blue:#5fa8ff; --green:#4cd97b; --danger:#ff5d6c;
+  --glow-cy:0 0 24px rgba(46,233,214,.45); --glow-vi:0 0 24px rgba(139,108,255,.45);
+  --f-display:"Chakra Petch","Segoe UI",sans-serif;
+  --f-body:"Outfit","Segoe UI",system-ui,sans-serif;
+  --dock-h:74px; --max:900px;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;font-family:var(--f-body);color:var(--fg);
+  background:
+    radial-gradient(1200px 700px at 80% -10%, rgba(139,108,255,.18), transparent 60%),
+    radial-gradient(900px 600px at -10% 10%, rgba(46,233,214,.14), transparent 55%),
+    linear-gradient(180deg,var(--bg-2),var(--bg) 60%);
+  background-attachment:fixed;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:40;background:rgba(7,10,18,.9);backdrop-filter:blur(8px)}
+.wrap{max-width:var(--max);margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+header.app{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;
+  background:linear-gradient(180deg,rgba(9,13,24,.92),rgba(9,13,24,.5));backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.bar{display:flex;align-items:center;gap:8px;padding-block:12px}
+.logo{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-weight:700;letter-spacing:.06em;font-size:1.05rem}
+.logo .mark{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(135deg,var(--cyan),var(--violet));color:#05121a;font-weight:800;box-shadow:var(--glow-cy)}
+.logo b{color:var(--fg)} .logo span{color:var(--cyan)}
+.spacer{flex:1}
+.count-pill{font-family:var(--f-display);font-size:.66rem;letter-spacing:.06em;color:var(--muted);border:1px solid var(--line);padding:5px 9px;border-radius:999px;background:var(--surface);white-space:nowrap}
+.gear{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--muted);display:grid;place-items:center;cursor:pointer;transition:.2s;flex:0 0 auto}
+.gear:hover{color:var(--fg);border-color:var(--cyan);box-shadow:var(--glow-cy)}
+.gear svg{width:18px;height:18px}
+
+main{padding-top:14px;padding-bottom:calc(var(--dock-h) + env(safe-area-inset-bottom,0px) + 22px)}
+.view{animation:fade .35s ease both}
+@keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+h1.title{font-family:var(--f-display);font-weight:700;font-size:1.5rem;margin:.1em 0 .1em;letter-spacing:.01em}
+.sub{color:var(--muted);margin:0 0 14px;font-size:.92rem}
+
+/* ---- Oggi / hero ---- */
+.hero{position:relative;border:1px solid var(--line);border-radius:24px;overflow:hidden;margin-bottom:16px;
+  background:radial-gradient(500px 320px at 85% -10%,rgba(139,108,255,.22),transparent 60%),linear-gradient(180deg,rgba(18,24,42,.72),rgba(10,14,26,.72))}
+.hero-top{display:flex;align-items:center;gap:12px;padding:16px 16px 0}
+.hi{font-family:var(--f-display);font-size:1.15rem;font-weight:700}
+.hi small{display:block;font-family:var(--f-body);font-weight:500;color:var(--muted);font-size:.8rem;letter-spacing:0;margin-top:2px}
+.wx{margin-left:auto;text-align:right;font-family:var(--f-display);line-height:1.1}
+.wx .t{font-size:1.5rem;color:var(--cyan)} .wx .d{font-size:.64rem;color:var(--muted);letter-spacing:.03em;max-width:120px}
+.wx .ic{font-size:1.5rem}
+.hero-mid{display:flex;align-items:stretch;gap:10px;padding:14px 16px 6px}
+.avatarbox{position:relative;width:138px;flex:0 0 auto;aspect-ratio:3/4;border-radius:18px;overflow:hidden;border:1px solid var(--line);
+  background:radial-gradient(240px 240px at 50% 15%,rgba(46,233,214,.12),transparent 60%),linear-gradient(180deg,#0d1424,#070b14);box-shadow:0 14px 34px rgba(0,0,0,.45)}
+.avatarbox .floor{position:absolute;inset:0;background-image:linear-gradient(rgba(46,233,214,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(46,233,214,.08) 1px,transparent 1px);background-size:26px 26px;mask-image:linear-gradient(180deg,transparent,#000 45%)}
+.avatarbox .av{position:absolute;inset:0;display:grid;place-items:center}
+.avatarbox .av svg{height:92%} .avatarbox .av img{width:100%;height:100%;object-fit:cover}
+.avatarbox .ol{position:absolute;inset:0}
+.ol .pc{position:absolute;left:50%;transform:translateX(-50%);filter:drop-shadow(0 8px 10px rgba(0,0,0,.55));animation:floaty 5s ease-in-out infinite}
+.ol .pc img{max-width:100%;max-height:100%;object-fit:contain}
+@keyframes floaty{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-6px)}}
+.hero-pick{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;justify-content:center}
+.hero-pick .q{font-family:var(--f-display);font-size:1.02rem;line-height:1.25}
+.hero-pick .q b{color:var(--cyan)}
+.hero-pick .mini{font-size:.8rem;color:var(--muted)}
+.why{margin:2px 16px 0;font-size:.82rem;color:var(--fg);border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:10px 12px;line-height:1.45}
+.why b{color:var(--cyan)} .why .tag{display:inline-block;font-family:var(--f-display);font-size:.6rem;letter-spacing:.04em;padding:2px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted);margin:2px 4px 0 0}
+.hero-actions{display:flex;gap:8px;padding:12px 16px 16px;flex-wrap:wrap}
+.hero-actions .btn{flex:1 1 120px}
+
+.seedrow{display:flex;gap:10px;overflow-x:auto;padding:4px 0 8px;scrollbar-width:none}
+.seedrow::-webkit-scrollbar{display:none}
+.seedpick{flex:0 0 auto;width:66px;text-align:center;cursor:pointer}
+.seedpick .im{width:66px;height:84px;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:var(--bg-2);transition:.2s}
+.seedpick.on .im,.seedpick:hover .im{border-color:var(--cyan);box-shadow:var(--glow-cy);transform:translateY(-3px)}
+.seedpick img{width:100%;height:100%;object-fit:cover}
+.seedpick small{display:block;font-size:.58rem;color:var(--muted);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.seedcat{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:6px}
+.seedcat::-webkit-scrollbar{display:none}
+
+/* ---- buttons ---- */
+.btn{font-family:var(--f-display);font-size:.78rem;letter-spacing:.03em;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);padding:11px;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:.2s;width:100%}
+.btn:hover{border-color:var(--cyan);box-shadow:var(--glow-cy)}
+.btn:active{transform:scale(.97)}
+.btn.sm{padding:8px;font-size:.72rem}
+.btn.danger:hover{border-color:var(--danger);box-shadow:0 0 20px rgba(255,93,108,.4);color:#ffd4d9}
+.btn.primary{background:linear-gradient(135deg,var(--cyan),var(--violet));color:#05121a;border-color:transparent;font-weight:700}
+.btn.primary:hover{box-shadow:var(--glow-vi)}
+.btn.ghost{background:transparent}
+
+/* ---- toolbar / chips / grid ---- */
+.toolbar{display:flex;gap:8px;margin-bottom:10px}
+.search{flex:1;display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:9px 12px;min-width:0}
+.search svg{width:16px;height:16px;color:var(--muted);flex:0 0 auto}
+.search input{flex:1;min-width:0;background:none;border:none;color:var(--fg);font:inherit;font-size:.9rem;outline:none}
+.sortsel{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:12px;padding:9px 10px;font-family:var(--f-display);font-size:.74rem;cursor:pointer}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 12px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;font-family:var(--f-display);font-size:.78rem;letter-spacing:.03em;padding:8px 14px;border-radius:999px;border:1px solid var(--line);color:var(--muted);background:var(--surface);cursor:pointer;transition:.2s;white-space:nowrap}
+.chip.on{color:#05121a;background:linear-gradient(135deg,var(--cyan),var(--violet));border-color:transparent;box-shadow:var(--glow-cy)}
+.chip.wash.on{background:linear-gradient(135deg,var(--blue),var(--cyan))}
+
+.grid{display:grid;gap:14px;grid-template-columns:repeat(2,1fr)}
+@media(min-width:620px){.grid{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:860px){.grid{grid-template-columns:repeat(4,1fr)}}
+.card{position:relative;aspect-ratio:3/4;perspective:900px;cursor:pointer}
+.card .inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .55s cubic-bezier(.4,.2,.2,1)}
+.card.flip .inner{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;border-radius:18px;overflow:hidden;backface-visibility:hidden;border:1px solid var(--line);background:var(--surface);box-shadow:0 10px 30px rgba(0,0,0,.45)}
+.face.front{display:flex;flex-direction:column}
+.face.front .ph{flex:1;overflow:hidden;position:relative;background:radial-gradient(circle at 50% 30%,rgba(139,108,255,.12),transparent 70%),#0a0f1c}
+.face.front .ph img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s}
+.card:hover .face.front .ph img{transform:scale(1.06)}
+.star{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;z-index:2;background:rgba(8,12,22,.55);border:1px solid var(--line);color:var(--muted);cursor:pointer;display:grid;place-items:center;transition:.2s;backdrop-filter:blur(4px)}
+.star:hover{color:var(--gold)} .star.on{color:var(--gold);border-color:var(--gold);box-shadow:0 0 12px rgba(255,209,95,.5)}
+.star svg{width:16px;height:16px}
+.badge{position:absolute;z-index:2;font-family:var(--f-display);font-size:.56rem;letter-spacing:.03em;color:#05121a;border-radius:999px;padding:2px 7px}
+.badge.worn{left:8px;top:8px;background:var(--cyan)}
+.badge.wash{left:8px;bottom:8px;background:var(--gold)}
+.badge.rest{right:8px;bottom:8px;background:var(--violet);color:#fff}
+.cap{padding:9px 11px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--line);background:linear-gradient(180deg,transparent,rgba(10,15,28,.6))}
+.cap .dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto;box-shadow:0 0 8px currentColor;border:1px solid rgba(255,255,255,.2)}
+.cap .nm{font-size:.82rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cap .cat{margin-left:auto;font-size:.6rem;letter-spacing:.05em;color:var(--muted);font-family:var(--f-display);text-transform:uppercase}
+.face.back{transform:rotateY(180deg);display:flex;flex-direction:column;padding:12px;gap:7px;overflow-y:auto;background:linear-gradient(160deg,rgba(30,40,68,.92),rgba(14,19,34,.95))}
+.back label.fld{font-family:var(--f-display);font-size:.58rem;letter-spacing:.05em;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:2px}
+.back input,.back select{width:100%;background:var(--bg-2);border:1px solid var(--line);color:var(--fg);border-radius:9px;padding:6px 8px;font:inherit;font-size:.78rem;outline:none}
+.back input:focus,.back select:focus{border-color:var(--cyan)}
+.back .row2{display:flex;gap:7px}.back .row2>div{flex:1;min-width:0}
+.back input.rcol{height:30px;padding:2px;cursor:pointer}
+.back .cpw{font-family:var(--f-display);font-size:.82rem;color:var(--cyan);padding-top:4px}
+.back .mini{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+
+.addtile{border:1.5px dashed rgba(120,150,210,.45);border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--muted);background:var(--surface);cursor:pointer;transition:.25s;aspect-ratio:3/4;text-align:center;padding:12px}
+.addtile:hover{border-color:var(--cyan);color:var(--fg);box-shadow:var(--glow-cy);transform:translateY(-3px)}
+.addtile .plus{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(135deg,var(--cyan),var(--violet));color:#05121a;font-size:1.6rem;box-shadow:var(--glow-cy)}
+.addtile small{font-family:var(--f-display);letter-spacing:.04em;font-size:.72rem;line-height:1.4}
+
+.empty{text-align:center;padding:30px 16px;border:1px solid var(--line);border-radius:20px;background:var(--surface);margin-top:8px}
+.empty h3{font-family:var(--f-display);margin:.2em 0}
+.empty p{color:var(--muted);margin:.3em 0 16px;font-size:.9rem}
+.steps{display:flex;flex-direction:column;gap:10px;text-align:left;max-width:330px;margin:0 auto 16px}
+.steps .s{display:flex;gap:10px;align-items:flex-start;font-size:.84rem}
+.steps .n{flex:0 0 auto;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-family:var(--f-display);font-size:.75rem;color:#05121a;background:linear-gradient(135deg,var(--cyan),var(--violet))}
+
+/* ---- archive ---- */
+.dayrow{display:flex;flex-direction:column;gap:10px}
+.daycard{border:1px solid var(--line);border-radius:18px;background:var(--surface);padding:12px;display:flex;gap:12px;align-items:center}
+.daycard .dt{flex:0 0 58px;text-align:center;font-family:var(--f-display)}
+.daycard .dt .dd{font-size:1.4rem;color:var(--cyan);line-height:1}
+.daycard .dt .mm{font-size:.6rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.daycard .pcs{flex:1;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}
+.daycard .pcs::-webkit-scrollbar{display:none}
+.daycard .pcs .t{width:48px;height:60px;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:var(--bg-2);flex:0 0 auto}
+.daycard .pcs .t img{width:100%;height:100%;object-fit:cover}
+.daycard .x{flex:0 0 auto;width:26px;height:26px;border-radius:50%;border:1px solid var(--line);background:rgba(0,0,0,.4);color:var(--fg);cursor:pointer}
+.statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:10px;margin:8px 0 18px}
+.stat{border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:12px;text-align:center}
+.stat .v{font-family:var(--f-display);font-size:1.4rem;color:var(--cyan)}
+.stat .k{font-size:.62rem;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;margin-top:2px}
+
+/* ---- dock ---- */
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:35;padding:10px max(14px,env(safe-area-inset-left,0px)) calc(10px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;pointer-events:none}
+.dock .inner{pointer-events:auto;display:flex;gap:4px;align-items:center;background:rgba(12,17,30,.82);backdrop-filter:blur(16px);border:1px solid var(--line);border-radius:22px;padding:7px;box-shadow:0 14px 40px rgba(0,0,0,.5);max-width:var(--max);width:100%}
+.navbtn{flex:1;border:none;background:transparent;color:var(--muted);cursor:pointer;padding:9px 4px;border-radius:15px;display:flex;flex-direction:column;align-items:center;gap:3px;font-family:var(--f-display);font-size:.6rem;letter-spacing:.04em;transition:.2s}
+.navbtn svg{width:22px;height:22px}
+.navbtn.on{color:var(--fg);background:linear-gradient(135deg,rgba(46,233,214,.18),rgba(139,108,255,.18));box-shadow:inset 0 0 0 1px rgba(46,233,214,.3)}
+.navbtn.on svg{filter:drop-shadow(0 0 6px var(--cyan))}
+.navadd{flex:0 0 auto;width:52px;height:52px;border-radius:17px;background:linear-gradient(135deg,var(--cyan),var(--violet));color:#05121a;font-size:1.7rem;display:grid;place-items:center;cursor:pointer;box-shadow:var(--glow-cy);border:none;transition:.2s}
+.navadd:active{transform:scale(.92)}
+
+.toast{position:fixed;left:50%;bottom:calc(var(--dock-h) + env(safe-area-inset-bottom,0px) + 18px);transform:translateX(-50%) translateY(20px);z-index:80;background:rgba(12,17,30,.95);border:1px solid var(--cyan);color:var(--fg);padding:11px 18px;border-radius:14px;font-size:.86rem;box-shadow:var(--glow-cy);opacity:0;pointer-events:none;transition:.3s;max-width:88vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ---- sheet / overlay ---- */
+.overlay{position:fixed;inset:0;z-index:70;background:rgba(5,8,15,.72);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;animation:fade .25s ease both}
+@media(min-width:620px){.overlay{align-items:center;padding:20px}}
+.sheet{position:relative;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;background:linear-gradient(180deg,rgba(18,24,42,.98),rgba(10,14,26,.98));border:1px solid var(--line);border-radius:22px 22px 0 0;padding:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+@media(min-width:620px){.sheet{border-radius:22px}}
+.sheet h2{font-family:var(--f-display);margin:0 0 4px;font-size:1.2rem}
+.sheet .close{position:absolute;top:14px;right:16px}
+.addcats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.addcat{justify-content:flex-start;gap:10px}
+.addcat .dot{width:12px;height:12px;border-radius:50%;box-shadow:0 0 8px currentColor;flex:0 0 auto}
+.armogrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.armo{border:1px solid var(--line);border-radius:16px;background:var(--surface);padding:12px;cursor:pointer;transition:.2s}
+.armo.on{border-color:var(--cyan);box-shadow:var(--glow-cy)}
+.armo h4{font-family:var(--f-display);margin:0 0 6px;font-size:.92rem}
+.armo .pal{display:flex;gap:5px;margin-bottom:6px}
+.armo .pal i{width:20px;height:20px;border-radius:6px;border:1px solid rgba(255,255,255,.15)}
+.armo p{margin:0;font-size:.72rem;color:var(--muted);line-height:1.35}
+.note{font-size:.8rem;color:var(--muted);border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:12px 14px;margin-top:10px;line-height:1.5}
+.note b{color:var(--cyan)}
+.selbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--dock-h) + env(safe-area-inset-bottom,0px) + 18px);z-index:55;display:flex;gap:8px;align-items:center;background:rgba(12,17,30,.96);border:1px solid var(--cyan);border-radius:16px;padding:8px 10px;box-shadow:var(--glow-cy);max-width:92vw;flex-wrap:wrap;justify-content:center}
+.selbar .cnt{font-family:var(--f-display);font-size:.72rem;padding:0 4px;white-space:nowrap}
+.selbar .btn{width:auto;padding:7px 10px}
+
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+</style>
+</head>
+<body>
+
+<header class="app">
+  <div class="wrap bar">
+    <div class="logo"><span class="mark">A</span><b>ARMADIO</b><span>3D</span></div>
+    <div class="spacer"></div>
+    <div class="count-pill" id="countPill">0 CAPI</div>
+    <button class="gear" id="gearBtn" aria-label="Impostazioni">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.3 1a7 7 0 0 0-1.7-1l-.3-2.5H9.4L9 4.6a7 7 0 0 0-1.7 1l-2.3-1-2 3.4 2 1.5a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 1.7 1l.3 2.5h4.2l.3-2.5a7 7 0 0 0 1.7-1l2.3 1 2-3.4-2-1.5c.1-.3.1-.7.1-1z"/></svg>
+    </button>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- ========== OGGI ========== -->
+  <section class="view" id="view-oggi">
+    <div class="hero" id="heroCard"></div>
+    <div id="seedArea"></div>
+  </section>
+
+  <!-- ========== ARMADIO ========== -->
+  <section class="view" id="view-armadio" hidden>
+    <h1 class="title">Il tuo armadio</h1>
+    <p class="sub">Fotografa i capi uno a uno. Tocca una card per girarla e modificarla.</p>
+    <div class="toolbar">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+        <input id="searchInp" type="search" placeholder="Cerca (nome, marca…)" aria-label="Cerca">
+      </div>
+      <select class="sortsel" id="sortSel" aria-label="Ordina">
+        <option value="recent">Recenti</option>
+        <option value="fav">Preferiti</option>
+        <option value="worn">Più usati</option>
+        <option value="color">Colore</option>
+      </select>
+      <button class="gear" id="selToggle" title="Seleziona" aria-label="Seleziona più capi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+      </button>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div id="wardrobeArea"></div>
+  </section>
+
+  <!-- ========== ARCHIVIO ========== -->
+  <section class="view" id="view-archivio" hidden>
+    <h1 class="title">Archivio outfit</h1>
+    <p class="sub">Come ti sei vestito nei giorni scorsi. L'app ruota i capi per 7 giorni (scarpe escluse).</p>
+    <div id="archStats"></div>
+    <div id="archList"></div>
+  </section>
+</main>
+
+<input type="file" id="fileInput" accept="image/*" multiple hidden>
+
+<nav class="dock">
+  <div class="inner">
+    <button class="navbtn on" data-go="oggi">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l9 8h-2v9h-5v-6H10v6H5v-9H3z"/></svg>Oggi</button>
+    <button class="navbtn" data-go="armadio">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M12 3v18M9 8h.01M15 8h.01"/></svg>Armadio</button>
+    <button class="navadd" id="dockAdd" title="Aggiungi capo" aria-label="Aggiungi capo">+</button>
+    <button class="navbtn" data-go="archivio">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M8 14h3"/></svg>Archivio</button>
+  </div>
+</nav>
+
+<div class="selbar" id="selBar" hidden>
+  <span class="cnt" id="selCnt">0</span>
+  <button class="btn sm" id="selWash">In lavaggio</button>
+  <button class="btn sm danger" id="selDel">Elimina</button>
+  <button class="btn sm" id="selCancel">Annulla</button>
+</div>
+
+<div class="toast" id="toast"></div>
+<div id="modalRoot"></div>
+
+<script>
+/* ======================= config ======================= */
+const CATS=[
+  {id:'giacche',label:'Giacche & Giubbini',short:'Giacche',slot:'outer',color:'#ff5fae'},
+  {id:'felpe',label:'Felpe · Maglioni · Cardigan',short:'Felpe',slot:'top',color:'#8b6cff'},
+  {id:'magliette',label:'Magliette & Camicie',short:'Magliette',slot:'top',color:'#2ee9d6'},
+  {id:'pantaloni',label:'Pantaloni & Jeans',short:'Pantaloni',slot:'bottom',color:'#5fa8ff'},
+  {id:'scarpe',label:'Scarpe',short:'Scarpe',slot:'shoes',color:'#ffd15f'},
+];
+const catById=id=>CATS.find(c=>c.id===id)||CATS[2];
+const isCatId=id=>CATS.some(c=>c.id===id);
+const slotOf=cat=>catById(cat).slot;
+const SLOT_NAME={outer:'Giacca',top:'Sopra',bottom:'Sotto',shoes:'Scarpe'};
+const SEASONS=[['estate','Estate'],['mezza','Mezza st.'],['inverno','Inverno']];
+const seasonLabel=s=>{const f=SEASONS.find(x=>x[0]===s);return f?f[1]:'';};
+const MONTHS=['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+const MONTHS_L=['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+const WDAYS=['domenica','lunedì','martedì','mercoledì','giovedì','venerdì','sabato'];
+/* Pomigliano d'Arco (NA) */
+const GEO={lat:40.91,lon:14.39,city:"Pomigliano d'Arco"};
+const KEY='armadio3d_v1';           // legacy local key (migrazione)
+const IDB_DB='armadio3d', IDB_STORE='kv', IDB_KEY='state';
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const $=s=>document.querySelector(s); const $$=s=>[...document.querySelectorAll(s)];
+const todayStr=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+const DAY=864e5;
+
+/* armocromia: stagioni personali */
+const ARMO={
+  inverno:{label:'Inverno',warm:false,contrast:'alto',pal:['#0a2a66','#d1002a','#00806a','#c0006a','#ffffff'],
+    goodHue:[[200,270],[300,350],[150,175],[345,360],[0,8]],avoidHue:[[20,60]],blackWhite:1,
+    tip:'pelle fredda, forte contrasto: colori freddi, puri e intensi (blu, bianco ottico, nero, rosso freddo, fucsia).'},
+  estate:{label:'Estate',warm:false,contrast:'basso',pal:['#6f88b8','#b58fb0','#8d9bb5','#c9b7d6','#eef1f6'],
+    goodHue:[[200,260],[250,290],[320,350]],avoidHue:[[20,55]],blackWhite:0.4,
+    tip:'pelle fredda e soffice: colori freddi ma tenui e polverosi (blu soft, lavanda, rosa cipria, grigio).'},
+  autunno:{label:'Autunno',warm:true,contrast:'medio',pal:['#7a6a1f','#b5531e','#6b7a2a','#9c6b3a','#efe4cf'],
+    goodHue:[[20,55],[55,95],[95,150]],avoidHue:[[270,330]],blackWhite:0.2,
+    tip:'pelle calda e profonda: terrosi e caldi (senape, ruggine, oliva, cammello, panna, verde bosco).'},
+  primavera:{label:'Primavera',warm:true,contrast:'medio',pal:['#ff8a4c','#ffd24c','#67c98f','#36c6c0','#fff3d6'],
+    goodHue:[[8,45],[45,70],[80,170]],avoidHue:[[260,320]],blackWhite:0.25,
+    tip:'pelle calda e luminosa: caldi e vivaci ma chiari (corallo, giallo caldo, verde mela, turchese, avorio).'},
+};
+
+/* ======================= state ======================= */
+function freshState(){return{items:[],history:[],profile:{name:'',armo:null,body:null},weather:null,seedId:null};}
+let state=freshState();
+
+/* ======================= IndexedDB ======================= */
+let _idb=null;
+function idbOpen(){return _idb?Promise.resolve(_idb):new Promise((res,rej)=>{
+  const r=indexedDB.open(IDB_DB,1);
+  r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(IDB_STORE))r.result.createObjectStore(IDB_STORE);};
+  r.onsuccess=()=>{_idb=r.result;res(_idb);};r.onerror=()=>rej(r.error);});}
+function idbGet(k){return idbOpen().then(db=>new Promise((res,rej)=>{
+  const t=db.transaction(IDB_STORE,'readonly').objectStore(IDB_STORE).get(k);t.onsuccess=()=>res(t.result);t.onerror=()=>rej(t.error);}));}
+function idbSet(k,v){return idbOpen().then(db=>new Promise((res,rej)=>{
+  const tx=db.transaction(IDB_STORE,'readwrite');tx.objectStore(IDB_STORE).put(v,k);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);}));}
+
+async function loadState(){
+  let o=null;
+  try{o=await idbGet(IDB_KEY);}catch(e){}
+  if(!o){try{const s=localStorage.getItem(KEY);if(s)o=JSON.parse(s);}catch(e){}}
+  if(o&&typeof o==='object'){state=Object.assign(freshState(),o);
+    if(!state.profile)state.profile={name:'',armo:null,body:null};
+    if(!Array.isArray(state.items))state.items=[];
+    if(!Array.isArray(state.history))state.history=[];}
+}
+let _saveT;
+function save(){clearTimeout(_saveT);_saveT=setTimeout(()=>{
+  let snap;try{snap=JSON.parse(JSON.stringify(state));}catch(e){return;}
+  idbSet(IDB_KEY,snap).catch(()=>{
+    try{localStorage.setItem(KEY,JSON.stringify(snap));}catch(e){toast('Memoria quasi piena: elimina qualche foto');}
+  });
+},140);}
+
+/* ======================= toast ======================= */
+let toT; function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toT);toT=setTimeout(()=>t.classList.remove('show'),2400);}
+
+/* ======================= image + colore ======================= */
+function processImage(file,max=860,wantColor=true){
+  return new Promise((res,rej)=>{const img=new Image();const url=URL.createObjectURL(file);
+    img.onload=()=>{let{width:w,height:h}=img;if(w>max||h>max){const r=Math.min(max/w,max/h);w=Math.round(w*r);h=Math.round(h*r);}
+      const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(url);const color=wantColor?dominantColor(c):null;const dataURL=c.toDataURL('image/jpeg',0.82);res({dataURL,color});};
+    img.onerror=rej;img.src=url;});
+}
+function dominantColor(c){
+  try{const ctx=c.getContext('2d');const {width:w,height:h}=c;const d=ctx.getImageData(0,0,w,h).data;
+    const b={};const step=Math.max(1,Math.floor((w*h)/3500));
+    for(let i=0;i<d.length;i+=4*step){const r=d[i],g=d[i+1],bl=d[i+2],a=d[i+3];if(a<128)continue;
+      const mx=Math.max(r,g,bl),mn=Math.min(r,g,bl);if(mx>244&&mn>232)continue;if(mx<16)continue;
+      const k=(r>>5)+'_'+(g>>5)+'_'+(bl>>5);(b[k]||(b[k]={n:0,r:0,g:0,b:0}));b[k].n++;b[k].r+=r;b[k].g+=g;b[k].b+=bl;}
+    let best=null,bn=0;for(const k in b)if(b[k].n>bn){bn=b[k].n;best=b[k];}
+    if(!best)return '#9aa4bd';
+    const r=Math.round(best.r/best.n),g=Math.round(best.g/best.n),bl=Math.round(best.b/best.n);
+    return '#'+[r,g,bl].map(x=>x.toString(16).padStart(2,'0')).join('');
+  }catch(e){return '#9aa4bd';}
+}
+function removeBg(src){return new Promise((res,rej)=>{const img=new Image();img.crossOrigin='anonymous';
+  img.onload=()=>{try{const w=img.naturalWidth,h=img.naturalHeight;const c=document.createElement('canvas');c.width=w;c.height=h;
+    const ctx=c.getContext('2d');ctx.drawImage(img,0,0);const id=ctx.getImageData(0,0,w,h);const d=id.data;const N=w*h;
+    const vis=new Uint8Array(N);const st=[];const corners=[[0,0],[w-1,0],[0,h-1],[w-1,h-1]];
+    let rr=0,gg=0,bb=0;corners.forEach(([x,y])=>{const i=(y*w+x)*4;rr+=d[i];gg+=d[i+1];bb+=d[i+2];});rr/=4;gg/=4;bb/=4;
+    const tol=48*48;corners.forEach(([x,y])=>{const idx=y*w+x;if(!vis[idx]){vis[idx]=1;st.push(idx);}});
+    while(st.length){const idx=st.pop();const i=idx*4;const dr=d[i]-rr,dg=d[i+1]-gg,db=d[i+2]-bb;
+      if(dr*dr+dg*dg+db*db>tol)continue;d[i+3]=0;const x=idx%w,y=(idx/w)|0;
+      if(x>0&&!vis[idx-1]){vis[idx-1]=1;st.push(idx-1);}if(x<w-1&&!vis[idx+1]){vis[idx+1]=1;st.push(idx+1);}
+      if(y>0&&!vis[idx-w]){vis[idx-w]=1;st.push(idx-w);}if(y<h-1&&!vis[idx+w]){vis[idx+w]=1;st.push(idx+w);}}
+    ctx.putImageData(id,0,0);const color=dominantColor(c);res({dataURL:c.toDataURL('image/png'),color});
+  }catch(e){rej(e);}};img.onerror=rej;img.src=src;});}
+
+/* ======================= motore colore + armocromia ======================= */
+function hexToHsl(hex){const m=/^#?([0-9a-f]{6})$/i.exec(hex||'');if(!m)return{h:0,s:0,l:.5};
+  const n=parseInt(m[1],16),r=(n>>16&255)/255,g=(n>>8&255)/255,b=(n&255)/255;
+  const mx=Math.max(r,g,b),mn=Math.min(r,g,b);let h=0,s=0,l=(mx+mn)/2;
+  if(mx!==mn){const dd=mx-mn;s=l>.5?dd/(2-mx-mn):dd/(mx+mn);
+    h=mx===r?(g-b)/dd+(g<b?6:0):mx===g?(b-r)/dd+2:(r-g)/dd+4;h/=6;}return{h:h*360,s,l};}
+function hueDist(a,b){let d=Math.abs(a-b)%360;return d>180?360-d:d;}
+function inRanges(h,ranges){return ranges.some(([a,b])=>a<=b?(h>=a&&h<=b):(h>=a||h<=b));}
+const COLOR_FAMS=[['rosso',0],['arancio',30],['giallo',55],['verde',110],['ciano',180],['blu',225],['viola',275],['rosa',320]];
+function colorName(hex){const {h,s,l}=hexToHsl(hex);
+  if(s<0.14)return l>0.78?'bianco':l<0.16?'nero':l>0.5?'grigio chiaro':'grigio';
+  if(h>=18&&h<=45&&s<0.6&&l>0.45)return 'beige/cammello';
+  if(h>=18&&h<=45&&l<0.42)return 'marrone';
+  if(h>=200&&h<=250&&l<0.32)return 'blu notte';
+  if(h>=55&&h<=95&&s<0.45)return 'verde oliva';
+  let best='rosso',bd=999;for(const[nm,hh]of COLOR_FAMS){const dd=hueDist(h,hh);if(dd<bd){bd=dd;best=nm;}}return best;}
+/* un colore è "neutro" (va con tutto) */
+function colorInfo(hex){const hsl=hexToHsl(hex);const {h,s,l}=hsl;
+  let neutral=false;
+  if(s<0.16)neutral=true;                               // bianco/grigio/nero
+  else if(h>=18&&h<=50&&s<0.55&&l>0.42)neutral=true;    // beige/cammello/crema
+  else if(h>=18&&h<=45&&l<0.40)neutral=true;            // marrone
+  else if(h>=200&&h<=250&&l<0.30)neutral=true;          // blu notte / navy
+  else if(h>=55&&h<=95&&s<0.4)neutral=true;             // oliva/khaki
+  const warm=inRanges(h,[[0,70],[330,360]]);
+  return {h,s,l,neutral,warm};}
+
+/* punteggio di abbinamento tra due colori: 0..1 */
+function harmony(c1,c2){
+  const A=colorInfo(c1),B=colorInfo(c2);
+  if(A.neutral&&B.neutral)return 0.9;
+  if(A.neutral||B.neutral)return 0.93;                  // neutro + colore = sempre elegante
+  // regola esplicita: blu (acceso, non navy) + rosso = evitare
+  const isRed=c=>inRanges(c.h,[[345,360],[0,18]])&&c.s>0.35;
+  const isBlue=c=>inRanges(c.h,[[205,255]])&&c.s>0.3;
+  if((isRed(A)&&isBlue(B))||(isRed(B)&&isBlue(A)))return 0.28;
+  const dd=hueDist(A.h,B.h);
+  const bold=A.s>0.5&&B.s>0.5;
+  if(dd<18)return 0.86;                                 // monocromatico
+  if(dd<42)return 0.82;                                 // analoghi
+  if(dd>=150)return bold?0.55:0.7;                      // complementari: audace
+  if(dd>=85&&dd<150)return bold?0.22:0.45;              // ZONA STONATA (blu+rosso ~135)
+  return bold?0.42:0.62;                                // triadici
+}
+/* quanto un colore dona all'armocromia scelta: 0..1 */
+function armoScore(hex,season){
+  const a=ARMO[season];if(!a)return 0.7;
+  const {h,s,l,neutral,warm}=colorInfo(hex);
+  if(neutral){
+    if(s<0.14){ // bianco/nero/grigio
+      if(l>0.8||l<0.16)return 0.55+0.45*a.blackWhite;   // bianco/nero: ottimi per Inverno
+      return 0.78;                                      // grigi: quasi sempre ok
+    }
+    // neutri caldi (beige/marrone/navy)
+    return a.warm===warm?0.86:0.72;
+  }
+  let sc=0.4;
+  if(inRanges(h,a.goodHue))sc=0.9; else if(a.warm===warm)sc=0.62;
+  if(inRanges(h,a.avoidHue))sc=Math.min(sc,0.3);
+  // contrasto/saturazione: Inverno ama intenso, Estate soft
+  if(season==='estate'&&s>0.7)sc-=0.15;
+  if(season==='inverno'&&s>0.6)sc+=0.05;
+  if(season==='autunno'&&s>0.75)sc-=0.1;
+  return Math.max(0.15,Math.min(1,sc));
+}
+
+/* ======================= meteo ======================= */
+const WMO={0:['Sereno','☀️'],1:['Quasi sereno','🌤️'],2:['Poco nuvoloso','⛅'],3:['Nuvoloso','☁️'],
+  45:['Nebbia','🌫️'],48:['Nebbia','🌫️'],51:['Pioviggine','🌦️'],53:['Pioviggine','🌦️'],55:['Pioviggine','🌦️'],
+  61:['Pioggia','🌧️'],63:['Pioggia','🌧️'],65:['Pioggia forte','🌧️'],66:['Pioggia gelata','🌧️'],67:['Pioggia gelata','🌧️'],
+  71:['Neve','❄️'],73:['Neve','❄️'],75:['Neve forte','❄️'],77:['Nevischio','❄️'],
+  80:['Rovesci','🌦️'],81:['Rovesci','🌦️'],82:['Rovesci forti','⛈️'],85:['Neve','🌨️'],86:['Neve','🌨️'],
+  95:['Temporale','⛈️'],96:['Temporale','⛈️'],99:['Temporale','⛈️']};
+function wmo(code){return WMO[code]||['—','🌡️'];}
+async function loadWeather(force){
+  const w=state.weather;
+  if(!force&&w&&(Date.now()-w.ts)<2*3600e3)return w;   // cache 2h
+  try{
+    const u=`https://api.open-meteo.com/v1/forecast?latitude=${GEO.lat}&longitude=${GEO.lon}&current=temperature_2m,apparent_temperature,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=1`;
+    const r=await fetch(u);const j=await r.json();const c=j.current||{};const dd=j.daily||{};
+    state.weather={ts:Date.now(),temp:Math.round(c.temperature_2m),app:Math.round(c.apparent_temperature),code:c.weather_code,
+      tmax:Math.round((dd.temperature_2m_max||[])[0]),tmin:Math.round((dd.temperature_2m_min||[])[0])};
+    save();return state.weather;
+  }catch(e){return state.weather||null;}
+}
+/* stagione dell'anno dalla data (emisfero nord) */
+function yearSeason(){const m=new Date().getMonth();return m<=1||m===11?'inverno':m<=4?'primavera':m<=7?'estate':'autunno';}
+/* target di calore in base a meteo/stagione: che capi servono */
+function warmthTarget(){
+  const w=state.weather;const ys=yearSeason();
+  let app=w?w.app:(ys==='inverno'?8:ys==='estate'?26:17);
+  const rain=w?(w.code>=51):false;
+  let topCat, outer, seasonTag, label;
+  if(app<7){topCat='felpe';outer='forte';seasonTag='inverno';label='molto freddo';}
+  else if(app<13){topCat='felpe';outer='si';seasonTag='inverno';label='freddo';}
+  else if(app<18){topCat='any';outer='leggero';seasonTag='mezza';label='fresco';}
+  else if(app<24){topCat='magliette';outer='no';seasonTag='mezza';label='mite';}
+  else {topCat='magliette';outer='no';seasonTag='estate';label='caldo';}
+  if(rain&&outer==='no')outer='leggero';
+  return {app,rain,topCat,outer,seasonTag,label};}
+
+/* ======================= generatore outfit ======================= */
+/* capi utilizzabili: non in lavaggio, e (scarpe o non indossati negli ultimi 7 gg) */
+function available(cat,allowSeed){
+  const now=Date.now();
+  return state.items.filter(it=>{
+    if(it.cat!==cat)return false;
+    if(it.laundry)return (allowSeed&&it.id===state.seedId);
+    if(cat==='scarpe')return true;                      // scarpe: ripetibili
+    if(it.lastWorn&&(now-it.lastWorn)<7*DAY)return (allowSeed&&it.id===state.seedId);
+    return true;
+  });
+}
+function seasonOk(it,tag){ if(tag==='mezza'||!it.season)return 1; if(it.season==='mezza')return 0.9; return it.season===tag?1:0.45; }
+/* sceglie il miglior capo per uno slot, dati i capi già scelti */
+function bestFor(cat,chosen,wt,avoid){
+  const armo=state.profile.armo;
+  let pool=available(cat,true).filter(it=>!avoid.has(it.id));
+  if(!pool.length){ // se il magazzino è "esaurito" per la rotazione, rilassa (ma non i da-lavare)
+    pool=state.items.filter(it=>it.cat===cat&&!it.laundry&&!avoid.has(it.id));
+  }
+  if(!pool.length)return null;
+  const chosenCols=chosen.map(c=>c.color);
+  let scored=pool.map(it=>{
+    let harm=1;
+    if(chosenCols.length){const hs=chosenCols.map(c=>harmony(c,it.color));harm=0.5*(hs.reduce((a,b)=>a+b,0)/hs.length)+0.5*Math.min(...hs);}
+    const armoS=armo?armoScore(it.color,armo):0.7;
+    const seas=seasonOk(it,wt.seasonTag);
+    const fav=it.fav?0.06:0;
+    const fresh=it.worn?Math.max(0,0.05-(it.worn*0.004)):0.05; // premia capi poco usati
+    const score=harm*0.52+armoS*0.26+seas*0.14+fav+fresh+Math.random()*0.05;
+    return {it,score,harm,armoS};
+  }).sort((a,b)=>b.score-a.score);
+  return scored[0];
+}
+function buildOutfit(seed){
+  if(!seed)return null;
+  const wt=warmthTarget();
+  const avoid=new Set([seed.id]);
+  const chosen=[seed];
+  const slots={outer:null,top:null,bottom:null,shoes:null};
+  slots[slotOf(seed.cat)]=seed;
+
+  // top (se il seed non è già un top): valuta sia magliette sia felpe,
+  // con una spinta in base al meteo, ma senza forzare abbinamenti che stonano
+  if(!slots.top){
+    const a=bestFor('magliette',chosen,wt,avoid),b=bestFor('felpe',chosen,wt,avoid);
+    const bias=wt.topCat==='felpe'?{m:0.8,f:1.18}:wt.topCat==='magliette'?{m:1.15,f:0.82}:{m:1,f:1};
+    const cand=[a&&{...a,score:a.score*bias.m},b&&{...b,score:b.score*bias.f}].filter(Boolean).sort((x,y)=>y.score-x.score);
+    const pick=cand[0];
+    if(pick){slots.top=pick.it;chosen.push(pick.it);avoid.add(pick.it.id);}
+  }
+  // bottom
+  if(!slots.bottom){const p=bestFor('pantaloni',chosen,wt,avoid);if(p){slots.bottom=p.it;chosen.push(p.it);avoid.add(p.it.id);}}
+  // outer (giacca) se serve per il freddo/pioggia
+  if(!slots.outer && wt.outer!=='no'){const p=bestFor('giacche',chosen,wt,avoid);if(p){slots.outer=p.it;chosen.push(p.it);avoid.add(p.it.id);}}
+  // scarpe
+  if(!slots.shoes){const p=bestFor('scarpe',chosen,wt,avoid);if(p){slots.shoes=p.it;chosen.push(p.it);avoid.add(p.it.id);}}
+
+  const order=[slots.outer,slots.top,slots.bottom,slots.shoes].filter(Boolean);
+  return {slots,order,wt,why:explain(order,wt)};
+}
+function explain(order,wt){
+  const cols=order.map(i=>({name:colorName(i.color),info:colorInfo(i.color),it:i}));
+  const neutrals=[...new Set(cols.filter(c=>c.info.neutral).map(c=>c.name))];
+  const accents=cols.filter(c=>!c.info.neutral);
+  const tags=[];
+  if(accents.length<=1)tags.push('equilibrato');
+  if(neutrals.length)tags.push('base neutra');
+  // verifica coppie problematiche
+  let clash=false;
+  for(let i=0;i<order.length;i++)for(let j=i+1;j<order.length;j++)if(harmony(order[i].color,order[j].color)<0.4)clash=true;
+  const armo=state.profile.armo;
+  let txt='';
+  if(accents.length===0)txt='Outfit tutto su toni neutri: pulito e sempre elegante. ';
+  else if(accents.length===1)txt=`Un solo colore protagonista (${accents[0].name}) su una base di ${neutrals.join(', ')||'tinte sobrie'}: abbinamento sicuro. `;
+  else txt=`Colori: ${cols.map(c=>c.name).join(', ')}. ${clash?'Ho bilanciato i toni per evitare accostamenti che stonano. ':'Tonalità che dialogano bene tra loro. '}`;
+  if(armo)txt+=`Adatto alla tua armocromia ${ARMO[armo].label.toLowerCase()}. `;
+  txt+=`Oggi fa ${wt.label}${wt.rain?' e piove':''}: ho scelto capi adatti alla temperatura.`;
+  return {txt,tags,clash};
+}
+
+/* ======================= OGGI (home) ======================= */
+let currentOutfit=null;
+const AVATAR=`<svg viewBox="0 0 120 300" fill="none" stroke="var(--cyan)" stroke-width="2" opacity=".6"><circle cx="60" cy="34" r="22"/><path d="M38 60 Q60 72 82 60 L96 120 82 128 78 98 76 180 70 290 50 290 44 180 42 98 38 128 24 120Z" fill="rgba(46,233,214,.06)"/><path d="M38 62 L16 150 26 156 44 96"/><path d="M82 62 L104 150 94 156 76 96"/></svg>`;
+
+function renderHero(){
+  const el=$('#heroCard');const d=new Date();
+  const w=state.weather;const wt=warmthTarget();
+  const greet=d.getHours()<12?'Buongiorno':d.getHours()<18?'Buon pomeriggio':'Buonasera';
+  const name=state.profile.name?(', '+state.profile.name):'';
+  const dateStr=`${WDAYS[d.getDay()]} ${d.getDate()} ${MONTHS_L[d.getMonth()]}`;
+  const [wtxt,wic]=w?wmo(w.code):['Meteo…','🌡️'];
+  const outfitPieces=currentOutfit?currentOutfit.order:[];
+  const avInner=state.profile.body?`<img src="${state.profile.body}" alt="avatar">`:AVATAR;
+  // overlay pezzi outfit sull'avatar
+  const posMap={top:'top:14%;width:62%;height:34%',outer:'top:12%;width:70%;height:40%',bottom:'top:50%;width:52%;height:34%',shoes:'top:84%;width:40%;height:14%'};
+  const ol=outfitPieces.map(it=>{const s=slotOf(it.cat);return `<div class="pc" style="${posMap[s]||posMap.top}"><img src="${it.img}"></div>`;}).join('');
+
+  el.innerHTML=`
+    <div class="hero-top">
+      <div class="hi">${greet}${name}!<small>${dateStr} · ${capFirst(yearSeason())}</small></div>
+      <div class="wx">
+        <div class="ic">${wic}</div>
+        <div class="t">${w?w.temp+'°':'—'}</div>
+        <div class="d">${GEO.city} · ${wtxt}${w?` · perc. ${w.app}°`:''}</div>
+      </div>
+    </div>
+    <div class="hero-mid">
+      <div class="avatarbox"><div class="floor"></div><div class="av">${avInner}</div><div class="ol">${ol}</div></div>
+      <div class="hero-pick">
+        <div class="q">Come vuoi vestirti <b>oggi</b>?</div>
+        <div class="mini">${state.items.length?'Scegli un capo qui sotto e creo l\'outfit perfetto intorno.':'Aggiungi qualche capo per iniziare.'}</div>
+        ${currentOutfit?`<button class="btn primary sm" id="heroRegen">✦ Rigenera</button>`:''}
+      </div>
+    </div>
+    ${currentOutfit?`<div class="why"><b>Perché funziona</b> — ${currentOutfit.why.txt}<div>${currentOutfit.why.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div></div>`:''}
+    ${currentOutfit?`<div class="hero-actions">
+        <button class="btn primary" id="heroWear">✓ Indossa oggi</button>
+        <button class="btn" id="heroClear">Azzera</button>
+      </div>`:''}
+  `;
+  if(currentOutfit){
+    $('#heroRegen')&&( $('#heroRegen').onclick=()=>{const seed=state.items.find(i=>i.id===state.seedId);if(seed){currentOutfit=buildOutfit(seed);renderHero();}});
+    $('#heroWear').onclick=wearToday;
+    $('#heroClear').onclick=()=>{currentOutfit=null;state.seedId=null;renderHero();renderSeed();};
+  }
+}
+function capFirst(s){return s.charAt(0).toUpperCase()+s.slice(1);}
+let seedCatFilter='all';
+function renderSeed(){
+  const area=$('#seedArea');
+  if(!state.items.length){
+    area.innerHTML=`<div class="empty">
+      <h3>Benvenuto in Armadio 3D</h3>
+      <div class="steps">
+        <div class="s"><span class="n">1</span><div>Fotografa i tuoi capi uno a uno nell'<b>Armadio</b>.</div></div>
+        <div class="s"><span class="n">2</span><div>Qui scegli un capo e l'app crea l'<b>outfit perfetto</b> abbinando i colori.</div></div>
+        <div class="s"><span class="n">3</span><div>Imposta la tua <b>armocromia</b> dall'ingranaggio in alto per consigli su misura.</div></div>
+      </div>
+      <button class="btn primary" style="max-width:260px;margin:0 auto" id="seedAdd">+ Aggiungi il primo capo</button></div>`;
+    $('#seedAdd').onclick=openAddSheet;return;
+  }
+  const cats=[['all','Tutti']].concat(CATS.map(c=>[c.id,c.short]));
+  const list=seedCatFilter==='all'?state.items:state.items.filter(i=>i.cat===seedCatFilter);
+  area.innerHTML=`
+    <div class="seedcat">${cats.map(([id,l])=>`<button class="chip${seedCatFilter===id?' on':''}" data-c="${id}">${l}</button>`).join('')}</div>
+    <div class="seedrow">${list.map(it=>`<div class="seedpick${state.seedId===it.id?' on':''}" data-id="${it.id}">
+        <div class="im"><img src="${it.img}"></div><small>${it.name}</small></div>`).join('')||'<div class="sub">Nessun capo in questa categoria.</div>'}</div>`;
+  area.querySelectorAll('.seedcat .chip').forEach(b=>b.onclick=()=>{seedCatFilter=b.dataset.c;renderSeed();});
+  area.querySelectorAll('.seedpick').forEach(p=>p.onclick=()=>{
+    const it=state.items.find(i=>i.id===p.dataset.id);if(!it)return;
+    state.seedId=it.id;currentOutfit=buildOutfit(it);renderHero();renderSeed();
+    window.scrollTo({top:0,behavior:'smooth'});
+  });
+}
+function wearToday(){
+  if(!currentOutfit)return;
+  const ids=currentOutfit.order.map(i=>i.id);const now=Date.now();const ds=todayStr();
+  ids.forEach(id=>{const it=state.items.find(i=>i.id===id);if(it){it.worn=(it.worn||0)+1;it.lastWorn=now;}});
+  state.history=state.history.filter(h=>h.date!==ds);
+  state.history.unshift({date:ds,itemIds:ids});
+  save();toast('Outfit segnato per oggi 👕 — in rotazione per 7 giorni');
+  currentOutfit=null;state.seedId=null;renderHero();renderSeed();renderCount();renderArchive();
+}
+
+/* ======================= ARMADIO ======================= */
+let currentFilter='all',sortMode='recent',searchQ='';
+$('#searchInp').addEventListener('input',e=>{searchQ=e.target.value.trim().toLowerCase();renderWardrobe();});
+$('#sortSel').addEventListener('change',e=>{sortMode=e.target.value;renderWardrobe();});
+function renderChips(){const box=$('#chips');box.innerHTML='';
+  const mk=(id,label,cls)=>{const el=document.createElement('button');el.className='chip'+(cls?' '+cls:'')+(currentFilter===id?' on':'');
+    el.textContent=label;el.onclick=()=>{currentFilter=id;renderChips();renderWardrobe();};box.appendChild(el);};
+  mk('all','Tutti ('+state.items.length+')');
+  const nf=state.items.filter(i=>i.fav).length;if(nf)mk('fav','★ Preferiti ('+nf+')');
+  CATS.forEach(c=>mk(c.id,c.short+' ('+state.items.filter(i=>i.cat===c.id).length+')'));
+  const nw=state.items.filter(i=>i.laundry).length;if(nw)mk('wash','In lavaggio ('+nw+')','wash');
+}
+function sortItems(a){a=[...a];
+  if(sortMode==='fav')a.sort((x,y)=>(y.fav-x.fav)||(y.createdAt-x.createdAt));
+  else if(sortMode==='worn')a.sort((x,y)=>(y.worn||0)-(x.worn||0));
+  else if(sortMode==='color')a.sort((x,y)=>hexToHsl(x.color).h-hexToHsl(y.color).h);
+  else a.sort((x,y)=>(y.createdAt||0)-(x.createdAt||0));return a;}
+function filterList(){let list;
+  if(currentFilter==='all')list=state.items;
+  else if(currentFilter==='fav')list=state.items.filter(i=>i.fav);
+  else if(currentFilter==='wash')list=state.items.filter(i=>i.laundry);
+  else list=state.items.filter(i=>i.cat===currentFilter);
+  if(searchQ)list=list.filter(i=>(i.name||'').toLowerCase().includes(searchQ)||(i.brand||'').toLowerCase().includes(searchQ)||catById(i.cat).short.toLowerCase().includes(searchQ));
+  return sortItems(list);}
+function restDays(it){if(it.cat==='scarpe'||!it.lastWorn)return 0;const d=7-Math.floor((Date.now()-it.lastWorn)/DAY);return d>0?d:0;}
+function renderWardrobe(){const area=$('#wardrobeArea');const list=filterList();
+  if(!state.items.length){
+    area.innerHTML=`<div class="empty">
+      <h3>Armadio vuoto</h3><p>Fotografa i tuoi capi uno a uno — non devono essere perfetti.</p>
+      <button class="btn primary" style="max-width:240px;margin:0 auto" id="emptyAdd">+ Aggiungi il primo capo</button></div>`;
+    $('#emptyAdd').onclick=openAddSheet;return;}
+  if(!list.length){area.innerHTML='<div class="empty"><h3>Nessun risultato</h3><p>Prova a cambiare ricerca o filtro.</p></div>';return;}
+  const g=document.createElement('div');g.className='grid';
+  list.forEach(it=>g.appendChild(cardEl(it)));
+  if(!selMode){const add=document.createElement('div');add.className='addtile';
+    add.innerHTML='<div class="plus">+</div><small>AGGIUNGI<br>'+(isCatId(currentFilter)?catById(currentFilter).short.toUpperCase():'CAPO')+'</small>';
+    add.onclick=startAdd;g.appendChild(add);}
+  area.innerHTML='';area.appendChild(g);}
+function cardEl(it){const c=catById(it.cat);const card=document.createElement('div');card.className='card';
+  const rest=restDays(it);
+  if(selMode){card.classList.add('selmode');if(selSet.has(it.id))card.style.outline='2px solid var(--cyan)';
+    card.innerHTML=`<div class="inner"><div class="face front"><div class="ph"><img src="${it.img}" alt="${it.name}"></div>
+      <div class="cap"><span class="dot" style="color:${it.color||c.color}"></span><span class="nm">${it.name}</span><span class="cat">${c.short}</span></div></div></div>`;
+    card.onclick=()=>toggleSel(it.id);return card;}
+  const opts=CATS.map(x=>`<option value="${x.id}"${x.id===it.cat?' selected':''}>${x.short}</option>`).join('');
+  const sopts=`<option value="">—</option>`+SEASONS.map(x=>`<option value="${x[0]}"${x[0]===it.season?' selected':''}>${x[1]}</option>`).join('');
+  const colv=/^#[0-9a-f]{6}$/i.test(it.color)?it.color:'#9aa4bd';
+  const cpw=it.worn&&it.price?('€'+(it.price/it.worn).toFixed(1)):'—';
+  card.innerHTML=`<div class="inner">
+    <div class="face front">
+      <div class="ph"><img src="${it.img}" alt="${it.name}">
+        ${it.worn?`<span class="badge worn">${it.worn}×</span>`:''}
+        ${it.laundry?'<span class="badge wash">LAVAGGIO</span>':(rest?`<span class="badge rest">${rest}g</span>`:'')}
+        <button class="star${it.fav?' on':''}" aria-label="Preferito"><svg viewBox="0 0 24 24" fill="${it.fav?'currentColor':'none'}" stroke="currentColor" stroke-width="1.8"><path d="M12 2l2.6 6.3L21 9l-5 4.3L17.5 21 12 17.3 6.5 21 8 13.3 3 9l6.4-.7z"/></svg></button></div>
+      <div class="cap"><span class="dot" style="color:${it.color||c.color}"></span><span class="nm">${it.name}</span><span class="cat">${c.short}</span></div></div>
+    <div class="face back">
+      <div><label class="fld">Nome</label><input class="rn" value="${(it.name||'').replace(/"/g,'&quot;')}" maxlength="40"></div>
+      <div class="row2">
+        <div><label class="fld">Categoria</label><select class="rc">${opts}</select></div>
+        <div><label class="fld">Stagione</label><select class="rs">${sopts}</select></div></div>
+      <div class="row2">
+        <div><label class="fld">Marca</label><input class="rb" value="${(it.brand||'').replace(/"/g,'&quot;')}" maxlength="30" placeholder="—"></div>
+        <div><label class="fld">Colore</label><input class="rcol" type="color" value="${colv}"></div></div>
+      <div class="row2">
+        <div><label class="fld">Prezzo €</label><input class="rp" type="number" min="0" step="1" value="${it.price||''}" placeholder="0"></div>
+        <div><label class="fld">Costo/uso</label><div class="cpw">${cpw}</div></div></div>
+      <div style="font-size:.68rem;color:var(--muted)">${colorName(it.color)} · indossato ${it.worn||0}×${rest?` · riposo ${rest}g`:''}</div>
+      <div class="mini">
+        <button class="btn primary sm act-save">Salva</button>
+        <button class="btn sm act-bg">Pulisci sfondo</button>
+        <button class="btn sm act-wash">${it.laundry?'Tolto dal lavaggio':'Metti in lavaggio'}</button>
+        <button class="btn sm danger act-del">Elimina</button>
+      </div></div></div>`;
+  card.addEventListener('pointermove',e=>{if(card.classList.contains('flip'))return;const r=card.getBoundingClientRect();
+    const px=(e.clientX-r.left)/r.width-.5,py=(e.clientY-r.top)/r.height-.5;
+    card.querySelector('.inner').style.transform=`rotateY(${px*14}deg) rotateX(${-py*14}deg)`;});
+  card.addEventListener('pointerleave',()=>{if(!card.classList.contains('flip'))card.querySelector('.inner').style.transform='';});
+  card.querySelector('.ph').addEventListener('click',e=>{if(e.target.closest('.star'))return;card.classList.add('flip');card.querySelector('.inner').style.transform='';});
+  card.querySelector('.back').addEventListener('pointermove',e=>e.stopPropagation());
+  card.querySelector('.star').onclick=e=>{e.stopPropagation();it.fav=!it.fav;save();renderWardrobe();};
+  card.querySelector('.act-save').onclick=e=>{e.stopPropagation();
+    it.name=card.querySelector('.rn').value.trim()||it.name;it.cat=card.querySelector('.rc').value;it.season=card.querySelector('.rs').value;
+    it.brand=card.querySelector('.rb').value.trim();it.color=card.querySelector('.rcol').value;it.price=Number(card.querySelector('.rp').value)||0;
+    save();toast('Salvato');card.classList.remove('flip');renderWardrobe();renderChips();};
+  card.querySelector('.act-bg').onclick=async e=>{e.stopPropagation();card.classList.remove('flip');toast('Pulisco lo sfondo…');
+    try{const r=await removeBg(it.img);it.img=r.dataURL;it.color=r.color;save();renderWardrobe();toast('Sfondo rimosso ✨');}catch(err){toast('Foto non adatta allo sfondo');}};
+  card.querySelector('.act-wash').onclick=e=>{e.stopPropagation();it.laundry=!it.laundry;save();toast(it.laundry?'Messo in lavaggio':'Tolto dal lavaggio');card.classList.remove('flip');renderWardrobe();renderChips();};
+  const del=card.querySelector('.act-del');del.onclick=e=>{e.stopPropagation();
+    if(del.dataset.c){state.items=state.items.filter(x=>x.id!==it.id);save();renderWardrobe();renderChips();renderCount();toast('Capo eliminato');}
+    else{del.dataset.c='1';del.textContent='Tocca per confermare';setTimeout(()=>{if(del){del.dataset.c='';del.textContent='Elimina';}},3000);}};
+  return card;}
+
+/* ===== selezione multipla ===== */
+let selMode=false;const selSet=new Set();
+$('#selToggle').onclick=()=>{selMode=!selMode;selSet.clear();$('#selToggle').classList.toggle('on',selMode);$('#selToggle').style.color=selMode?'var(--cyan)':'';renderWardrobe();renderSelBar();};
+function toggleSel(id){selSet.has(id)?selSet.delete(id):selSet.add(id);renderWardrobe();renderSelBar();}
+function renderSelBar(){const bar=$('#selBar');if(!selMode||!selSet.size){bar.hidden=true;return;}bar.hidden=false;$('#selCnt').textContent=selSet.size+' selez.';}
+$('#selWash').onclick=()=>{const any=[...selSet].some(id=>{const it=state.items.find(i=>i.id===id);return it&&!it.laundry;});
+  selSet.forEach(id=>{const it=state.items.find(i=>i.id===id);if(it)it.laundry=any;});save();renderWardrobe();renderChips();toast(any?'In lavaggio':'Tolti dal lavaggio');};
+$('#selDel').onclick=()=>{const b=$('#selDel');if(!b.dataset.c){b.dataset.c='1';b.textContent='Conferma?';setTimeout(()=>{if(b){b.dataset.c='';b.textContent='Elimina';}},3000);return;}
+  const s=new Set(selSet);state.items=state.items.filter(x=>!s.has(x.id));selSet.clear();b.dataset.c='';b.textContent='Elimina';save();renderWardrobe();renderChips();renderCount();renderSelBar();toast('Capi eliminati');};
+$('#selCancel').onclick=()=>{selMode=false;selSet.clear();$('#selToggle').classList.remove('on');$('#selToggle').style.color='';renderWardrobe();renderSelBar();};
+
+/* ======================= ARCHIVIO ======================= */
+function renderArchive(){
+  const stats=$('#archStats'),listEl=$('#archList');
+  const resting=state.items.filter(i=>restDays(i)>0).length;
+  const washing=state.items.filter(i=>i.laundry).length;
+  const avail=state.items.filter(i=>i.cat!=='scarpe'&&!i.laundry&&restDays(i)===0).length;
+  stats.innerHTML=`<div class="statgrid">
+    <div class="stat"><div class="v">${state.items.length}</div><div class="k">Capi totali</div></div>
+    <div class="stat"><div class="v">${state.history.length}</div><div class="k">Giorni salvati</div></div>
+    <div class="stat"><div class="v">${avail}</div><div class="k">Pronti oggi</div></div>
+    <div class="stat"><div class="v">${resting}</div><div class="k">In riposo</div></div>
+    <div class="stat"><div class="v">${washing}</div><div class="k">In lavaggio</div></div>
+  </div>`;
+  if(!state.history.length){listEl.innerHTML='<div class="empty"><h3>Ancora nessun outfit salvato</h3><p>Nella Home scegli un capo, crea l\'outfit e tocca "Indossa oggi".</p></div>';return;}
+  listEl.innerHTML='<div class="dayrow">'+state.history.slice(0,60).map(h=>{
+    const [y,m,dd]=h.date.split('-');
+    const items=h.itemIds.map(id=>state.items.find(i=>i.id===id)).filter(Boolean);
+    return `<div class="daycard" data-date="${h.date}">
+      <div class="dt"><div class="dd">${+dd}</div><div class="mm">${MONTHS[+m-1]}</div></div>
+      <div class="pcs">${items.map(i=>`<div class="t"><img src="${i.img}"></div>`).join('')||'<span class="sub">capi rimossi</span>'}</div>
+      <button class="x" title="Rimuovi">✕</button></div>`;
+  }).join('')+'</div>';
+  listEl.querySelectorAll('.daycard').forEach(card=>{
+    card.querySelector('.x').onclick=()=>{const dt=card.dataset.date;state.history=state.history.filter(h=>h.date!==dt);save();renderArchive();toast('Giorno rimosso');};
+  });
+}
+
+/* ======================= aggiunta capi ======================= */
+let pendingCat='magliette',bodyMode=false;
+function defaultName(cat){const c=catById(cat);const n=state.items.filter(i=>i.cat===cat).length+1;return c.short+' '+n;}
+function openPicker(cat){pendingCat=cat||pendingCat;bodyMode=false;$('#fileInput').click();}
+$('#fileInput').onchange=async e=>{const files=[...e.target.files];e.target.value='';if(!files.length){bodyMode=false;return;}
+  if(bodyMode){bodyMode=false;await setBody(files[0]);return;}await addItems(files,pendingCat);};
+async function addItems(files,cat){let ok=0;
+  for(const f of files){try{const p=await processImage(f);
+    state.items.push({id:uid(),cat,img:p.dataURL,color:p.color,name:defaultName(cat),fav:false,worn:0,lastWorn:null,season:'',brand:'',price:0,laundry:false,createdAt:Date.now()});ok++;}catch(e){}}
+  save();renderWardrobe();renderChips();renderCount();renderSeed();
+  toast(ok?ok+' capo'+(ok>1?'i':'')+' aggiunto'+(ok>1?'i':''):'Caricamento non riuscito');}
+function startAdd(){if(isCatId(currentFilter))openPicker(currentFilter);else openAddSheet();}
+function closableOverlay(html,onBuilt){const el=document.createElement('div');el.className='overlay';el.innerHTML=html;
+  $('#modalRoot').appendChild(el);const close=()=>{el.remove();document.removeEventListener('keydown',esc);};
+  const esc=e=>{if(e.key==='Escape')close();};document.addEventListener('keydown',esc);
+  el.addEventListener('click',e=>{if(e.target===el)close();});if(onBuilt)onBuilt(el,close);return{el,close};}
+function openAddSheet(){closableOverlay(`<div class="sheet" style="max-width:460px" role="dialog" aria-label="Nuovo capo">
+    <button class="gear close" id="asClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <h2>Nuovo capo</h2><p class="sub" style="margin:6px 0 0">Scegli la categoria, poi scatta o seleziona le foto.</p>
+    <div class="addcats">${CATS.map(c=>`<button class="btn addcat" data-c="${c.id}"><span class="dot" style="color:${c.color}"></span>${c.short}</button>`).join('')}</div></div>`,
+  (el,close)=>{el.querySelector('#asClose').onclick=close;el.querySelectorAll('.addcat').forEach(b=>b.onclick=()=>{close();openPicker(b.dataset.c);});});}
+$('#dockAdd').onclick=()=>{go('armadio');startAdd();};
+
+async function setBody(file){try{const p=await processImage(file,1000,false);state.profile.body=p.dataURL;save();renderHero();toast('Avatar aggiornato');}catch(e){toast('Foto non valida');}}
+
+/* ======================= impostazioni ======================= */
+$('#gearBtn').onclick=openSettings;
+function openSettings(){closableOverlay(`<div class="sheet" role="dialog" aria-label="Impostazioni">
+    <button class="gear close" id="stClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <h2>Impostazioni</h2>
+    <p class="sub" style="margin:6px 0 2px">La tua <b style="color:var(--cyan)">armocromia</b> — la stagione dei colori che ti donano.</p>
+    <div class="armogrid" id="armoGrid"></div>
+    <div class="note" id="armoTip"></div>
+    <div style="margin-top:14px"><label class="fld" style="font-family:var(--f-display);font-size:.62rem;letter-spacing:.05em;color:var(--muted);text-transform:uppercase">Il tuo nome (facoltativo)</label>
+      <input id="stName" placeholder="Es. Alessandro" value="${(state.profile.name||'').replace(/"/g,'&quot;')}" style="width:100%;background:var(--bg-2);border:1px solid var(--line);color:var(--fg);border-radius:10px;padding:9px 11px;font:inherit;margin-top:4px;outline:none"></div>
+    <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+      <button class="btn" id="stAvatar" style="flex:1 1 140px">Imposta foto avatar</button>
+      <button class="btn" id="stWeather" style="flex:1 1 120px">Aggiorna meteo</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+      <button class="btn" id="stExport" style="flex:1 1 120px">Backup (JSON)</button>
+      <button class="btn" id="stImport" style="flex:1 1 120px">Ripristina</button>
+    </div>
+    <div class="note">📍 Meteo da <b>${GEO.city}</b> (Napoli). I capi suggeriti tengono conto di temperatura, pioggia e stagione.</div>
+  </div>`,
+  (el,close)=>{el.querySelector('#stClose').onclick=close;
+    const grid=el.querySelector('#armoGrid'),tip=el.querySelector('#armoTip');
+    const drawArmo=()=>{grid.innerHTML=Object.entries(ARMO).map(([k,a])=>`<div class="armo${state.profile.armo===k?' on':''}" data-k="${k}">
+        <div class="pal">${a.pal.map(c=>`<i style="background:${c}"></i>`).join('')}</div><h4>${a.label}</h4><p>${a.tip}</p></div>`).join('');
+      tip.innerHTML=state.profile.armo?`<b>${ARMO[state.profile.armo].label}</b>: l'app privilegia questi colori per i capi vicino al viso. Non sei sicuro? Scegli in base al contrasto naturale pelle/capelli.`:'Tocca la stagione che senti più tua. Non sei sicuro? Potrai cambiarla quando vuoi.';
+      grid.querySelectorAll('.armo').forEach(a=>a.onclick=()=>{state.profile.armo=a.dataset.k;save();drawArmo();if(currentOutfit&&state.seedId){const s=state.items.find(i=>i.id===state.seedId);if(s){currentOutfit=buildOutfit(s);renderHero();}}toast('Armocromia: '+ARMO[a.dataset.k].label);});};
+    drawArmo();
+    el.querySelector('#stName').oninput=e=>{state.profile.name=e.target.value.trim();save();renderHero();};
+    el.querySelector('#stAvatar').onclick=()=>{bodyMode=true;$('#fileInput').click();};
+    el.querySelector('#stWeather').onclick=async()=>{toast('Aggiorno il meteo…');await loadWeather(true);renderHero();toast('Meteo aggiornato');};
+    el.querySelector('#stExport').onclick=exportData;
+    el.querySelector('#stImport').onclick=importData;
+  });}
+function exportData(){const blob=new Blob([JSON.stringify(state)],{type:'application/json'});const u=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=u;a.download='armadio3d-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);toast('Backup scaricato');}
+function importData(){const inp=document.createElement('input');inp.type='file';inp.accept='application/json';
+  inp.onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const txt=await f.text();const o=JSON.parse(txt);
+    state=Object.assign(freshState(),o);save();renderAll();toast('Dati ripristinati');}catch(err){toast('File non valido');}};inp.click();}
+
+/* ======================= navigazione ======================= */
+function renderCount(){$('#countPill').textContent=state.items.length+' CAP'+(state.items.length===1?'O':'I');}
+function go(view){const map={oggi:'#view-oggi',armadio:'#view-armadio',archivio:'#view-archivio'};
+  $$('.view').forEach(v=>v.hidden=true);$(map[view]).hidden=false;
+  $$('.navbtn').forEach(b=>b.classList.toggle('on',b.dataset.go===view));
+  if(view==='oggi'){renderHero();renderSeed();}
+  if(view==='armadio'){renderWardrobe();renderChips();}
+  if(view==='archivio')renderArchive();
+  window.scrollTo({top:0,behavior:'smooth'});}
+$$('.navbtn').forEach(b=>b.onclick=()=>go(b.dataset.go));
+
+/* ======================= boot ======================= */
+function renderAll(){renderCount();renderHero();renderSeed();renderWardrobe();renderChips();renderArchive();}
+async function boot(){
+  await loadState();
+  renderAll();
+  const w=await loadWeather();if(w){renderHero();if(state.seedId){const s=state.items.find(i=>i.id===state.seedId);}}
+}
+boot();
+
+if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}
+</script>
+</body>
+</html>
