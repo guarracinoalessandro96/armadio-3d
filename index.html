@@ -880,8 +880,25 @@ function closableOverlay(html,onBuilt){const el=document.createElement('div');el
 function openAddSheet(){closableOverlay(`<div class="sheet" style="max-width:460px" role="dialog" aria-label="Nuovo capo">
     <button class="gear close" id="asClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     <h2>Nuovo capo</h2><p class="sub" style="margin:6px 0 0">Scegli la categoria, poi scatta o seleziona le foto.</p>
-    <div class="addcats">${CATS.map(c=>`<button class="btn addcat" data-c="${c.id}"><span class="dot" style="color:${c.color}"></span>${c.short}</button>`).join('')}</div></div>`,
-  (el,close)=>{el.querySelector('#asClose').onclick=close;el.querySelectorAll('.addcat').forEach(b=>b.onclick=()=>{close();openPicker(b.dataset.c);});});}
+    <div class="addcats">${CATS.map(c=>`<button class="btn addcat" data-c="${c.id}"><span class="dot" style="color:${c.color}"></span>${c.short}</button>`).join('')}</div>
+    <div style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px">
+      <button class="btn" id="asImport" style="width:100%;font-weight:700">📦 Importa tanti da file</button>
+      <p class="sub" style="margin:7px 0 0;font-size:.72rem">Hai un file di capi già pronti (JSON)? Li carichi tutti in una volta, già con categoria e colore.</p>
+    </div></div>`,
+  (el,close)=>{el.querySelector('#asClose').onclick=close;el.querySelectorAll('.addcat').forEach(b=>b.onclick=()=>{close();openPicker(b.dataset.c);});
+    el.querySelector('#asImport').onclick=()=>{close();importCapi();};});}
+function colorFromDataURL(src){return new Promise((res,rej)=>{const img=new Image();img.onload=()=>{try{const c=document.createElement('canvas');c.width=img.naturalWidth;c.height=img.naturalHeight;c.getContext('2d').drawImage(img,0,0);res(dominantColor(c));}catch(e){res('#9aa4bd');}};img.onerror=rej;img.src=src;});}
+function importCapi(){const inp=document.createElement('input');inp.type='file';inp.accept='application/json,.json';
+  inp.onchange=async e=>{const f=e.target.files[0];if(!f)return;toast('Importo i capi…');
+    try{const o=JSON.parse(await f.text());const arr=Array.isArray(o)?o:(o.capi||o.items||[]);
+      if(!arr.length){toast('Nessun capo nel file');return;}
+      let ok=0;
+      for(const it of arr){if(!it||!it.img)continue;
+        const cat=isCatId(it.cat)?it.cat:'magliette';
+        let color=it.color;if(!color){try{color=await colorFromDataURL(it.img);}catch(_){color='#9aa4bd';}}
+        state.items.push({id:uid(),cat,img:it.img,color,name:it.name||defaultName(cat),fav:false,worn:0,lastWorn:null,season:it.season||'',brand:it.brand||'',price:0,laundry:false,createdAt:Date.now()});ok++;}
+      save();renderAll();go('armadio');toast(ok?ok+' capo'+(ok>1?'i':'')+' importat'+(ok>1?'i':'o')+' ✅':'Nessun capo valido');
+    }catch(err){toast('File non valido');}};inp.click();}
 $('#dockAdd').onclick=()=>{go('armadio');startAdd();};
 
 async function setBody(file){try{const p=await processImage(file,1000,false);state.profile.body=p.dataURL;save();renderHero();toast('Avatar aggiornato');}catch(e){toast('Foto non valida');}}
