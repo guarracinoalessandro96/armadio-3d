@@ -2,3 +2,7 @@ ISPIRAZIONI.md
 Thumbs.db
 .DS_Store
 *.log
+# capi personali: mai nel repo pubblico
+capi_import.json
+armadio3d_capi_import.json
+*_capi_*.json
