@@ -1,5 +1,7 @@
-/* Armadio 3D — service worker (offline shell) */
-const CACHE = 'armadio3d-v8';
+/* Armadio 3D — service worker
+   HTML: network-first (prende sempre l'ultima versione quando online, cache offline)
+   Asset statici: stale-while-revalidate */
+const CACHE = 'armadio3d-v9';
 const ASSETS = [
   './',
   './index.html',
@@ -22,15 +24,31 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  const url = new URL(e.request.url);
-  if (e.request.method !== 'GET' || url.origin !== location.origin) return; // let cross-origin (fonts) hit network
-  e.respondWith(
-    caches.match(e.request).then(cached =>
-      cached || fetch(e.request).then(resp => {
+  const req = e.request;
+  const url = new URL(req.url);
+  if (req.method !== 'GET' || url.origin !== location.origin) return; // cross-origin (font, meteo) -> rete
+
+  const isDoc = req.mode === 'navigate' || url.pathname.endsWith('/') || url.pathname.endsWith('.html');
+  if (isDoc) {
+    // network-first: sempre l'ultima app quando c'è rete
+    e.respondWith(
+      fetch(req).then(resp => {
         const copy = resp.clone();
-        caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
+        caches.open(CACHE).then(c => c.put('./index.html', copy)).catch(() => {});
         return resp;
-      }).catch(() => caches.match('./index.html'))
-    )
-  );
+      }).catch(() => caches.match(req).then(r => r || caches.match('./index.html')))
+    );
+  } else {
+    // asset: dalla cache subito, aggiorno in background
+    e.respondWith(
+      caches.match(req).then(cached => {
+        const net = fetch(req).then(resp => {
+          const copy = resp.clone();
+          caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+          return resp;
+        }).catch(() => cached);
+        return cached || net;
+      })
+    );
+  }
 });
