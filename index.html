@@ -44,7 +44,7 @@ body{margin:0;font-family:var(--f-body);color:var(--fg);
 
 header.app{position:sticky;top:0;z-index:30;
   background:linear-gradient(180deg,rgba(9,13,24,.96),rgba(9,13,24,.72));backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
-.bar{display:flex;align-items:center;gap:8px;padding:calc(12px + env(safe-area-inset-top,0px)) 0 12px}
+.bar{display:flex;align-items:center;gap:8px;padding:calc(24px + env(safe-area-inset-top,0px)) 0 14px}
 .logo{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-weight:700;letter-spacing:.06em;font-size:1.05rem}
 .logo .mark{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(135deg,var(--cyan),var(--violet));color:#05121a;font-weight:800;box-shadow:var(--glow-cy)}
 .logo b{color:var(--fg)} .logo span{color:var(--cyan)}
@@ -722,12 +722,7 @@ const Avatar3D=(function(){
     if(botCol){tint(body.legL,botCol);tint(body.legR,botCol);tint(body.pelvis,botCol);}
     if(shoeCol){tint(body.footL,shoeCol);tint(body.footR,shoeCol);}
     planes.forEach(p=>{root.remove(p);if(p.material&&p.material.map)p.material.map.dispose();if(p.material)p.material.dispose();if(p.geometry)p.geometry.dispose();});planes=[];
-    const chestP=pieces.find(p=>slotOf(p.cat)==='outer')||pieces.find(p=>slotOf(p.cat)==='top');
-    const botP=pieces.find(p=>slotOf(p.cat)==='bottom');
-    const shoeP=pieces.find(p=>slotOf(p.cat)==='shoes');
-    if(chestP)addPlane(chestP.img,[0,1.52,0.34,0.62]);
-    if(botP)addPlane(botP.img,[0,0.62,0.31,0.58]);
-    if(shoeP)addPlane(shoeP.img,[0,0.14,0.3,0.32]);
+    /* niente più foto ritagliate appiccicate sull'avatar */
     const hcm=(prof&&prof.height)?prof.height:175;
     const sy=0.9+(Math.max(155,Math.min(200,hcm))-155)/45*0.2;
     const bs=(prof&&prof.build==='snello')?0.86:(prof&&prof.build==='robusto')?1.2:1;
@@ -1155,17 +1150,23 @@ function openAddSheet(){closableOverlay(`<div class="sheet" style="max-width:460
   (el,close)=>{el.querySelector('#asClose').onclick=close;el.querySelectorAll('.addcat').forEach(b=>b.onclick=()=>{close();openPicker(b.dataset.c);});
     el.querySelector('#asImport').onclick=()=>{close();importCapi();};});}
 function colorFromDataURL(src){return new Promise((res,rej)=>{const img=new Image();img.onload=()=>{try{const c=document.createElement('canvas');c.width=img.naturalWidth;c.height=img.naturalHeight;c.getContext('2d').drawImage(img,0,0);res(dominantColor(c));}catch(e){res('#9aa4bd');}};img.onerror=rej;img.src=src;});}
-function importCapi(){const inp=document.createElement('input');inp.type='file';inp.accept='application/json,.json';
-  inp.onchange=async e=>{const f=e.target.files[0];if(!f)return;toast('Importo i capi…');
-    try{const o=JSON.parse(await f.text());const arr=Array.isArray(o)?o:(o.capi||o.items||[]);
-      if(!arr.length){toast('Nessun capo nel file');return;}
-      let ok=0;
-      for(const it of arr){if(!it||!it.img)continue;
-        const cat=isCatId(it.cat)?it.cat:'magliette';
-        let color=it.color;if(!color){try{color=await colorFromDataURL(it.img);}catch(_){color='#9aa4bd';}}
-        state.items.push({id:uid(),cat,img:it.img,color,name:it.name||defaultName(cat),fav:false,worn:0,lastWorn:null,season:it.season||'',brand:it.brand||'',price:0,laundry:false,createdAt:Date.now()});ok++;}
-      save();renderAll();go('armadio');toast(ok?ok+' capo'+(ok>1?'i':'')+' importat'+(ok>1?'i':'o')+' ✅':'Nessun capo valido');
-    }catch(err){toast('File non valido');}};inp.click();}
+function readFileText(f){return f.text?f.text():new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(r.error);r.readAsText(f);});}
+function importCapi(){const inp=document.createElement('input');inp.type='file';inp.accept='.json,application/json';
+  inp.onchange=async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;toast('Importo i capi…');
+    let txt;try{txt=await readFileText(f);}catch(_){toast('Non riesco a leggere il file');return;}
+    let o;try{o=JSON.parse(txt);}catch(_){toast('File non valido (non è un .json)');return;}
+    const arr=Array.isArray(o)?o:(o.capi||o.items||(o.state&&o.state.items)||[]);
+    if(!Array.isArray(arr)||!arr.length){toast('Nessun capo nel file');return;}
+    let ok=0;
+    for(const it of arr){if(!it||!it.img)continue;
+      const cat=isCatId(it.cat)?it.cat:'magliette';
+      let color=it.color;if(!color){try{color=await colorFromDataURL(it.img);}catch(_){color='#9aa4bd';}}
+      state.items.push({id:uid(),cat,img:it.img,color,name:it.name||defaultName(cat),fav:false,worn:0,lastWorn:null,season:it.season||'',brand:it.brand||'',price:0,laundry:false,createdAt:Date.now()});ok++;}
+    if(!ok){toast('Nessun capo valido nel file');return;}
+    try{await idbSet(IDB_KEY,JSON.parse(JSON.stringify(state)));}
+    catch(err){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e2){toast('Memoria piena: impossibile salvare');return;}}
+    renderAll();go('armadio');toast(ok+' cap'+(ok>1?'i':'o')+' important'+(ok>1?'i':'o')+' ✅');
+  };inp.click();}
 $('#dockAdd').onclick=()=>{go('armadio');startAdd();};
 
 async function setBody(file){try{const p=await processImage(file,1000,false);state.profile.body=p.dataURL;save();renderHero();toast('Avatar aggiornato');}catch(e){toast('Foto non valida');}}
