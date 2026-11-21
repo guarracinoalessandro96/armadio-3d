@@ -1,7 +1,7 @@
 /* Armadio 3D — service worker
    HTML: network-first (prende sempre l'ultima versione quando online, cache offline)
    Asset statici: stale-while-revalidate */
-const CACHE = 'armadio3d-v15';
+const CACHE = 'armadio3d-v16';
 const ASSETS = [
   './',
   './index.html',
